@@ -20,7 +20,6 @@ function secondsToHMS(sec: number): string {
   return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
-/** スタート時刻 + 秒数 → 実時刻（日またぎ対応） */
 function addSecondsToStart(startISO: string, sec: number): { time: string; dayOffset: number } {
   const date = new Date(startISO.replace(" ", "T"));
   const startDay = date.getDate();
@@ -37,7 +36,6 @@ function calcScaleFactor(targetSec: number, baseSec: number): number {
   return targetSec / baseSec;
 }
 
-/** 種目ごとの目標タイム選択肢を生成（30分刻み） */
 function generateTimeOptions(race: string): string[] {
   const range = race === "100mile"
     ? { startH: 20, endH: 35 }
@@ -52,7 +50,6 @@ function generateTimeOptions(race: string): string[] {
   return options;
 }
 
-/** 目標タイムの表示用ラベル "15:00:00" → "15時間00分" */
 function timeLabel(hms: string): string {
   const parts = hms.split(":");
   return parts[0] + "時間" + parts[1] + "分";
@@ -109,7 +106,6 @@ interface TableRow {
 export default function Home() {
   const [race, setRace] = useState("100k");
   const [targetInput, setTargetInput] = useState("15:00:00");
-
   const timeOptions = generateTimeOptions(race);
 
   const handleRaceChange = (newRace: string) => {
@@ -172,7 +168,6 @@ export default function Home() {
         const scaledSectionSec = Math.round(baseSectionSec * scale);
         const mult = multipliers && multipliers[i] !== undefined ? multipliers[i] : 1.0;
         const adjustedSectionSec = Math.round(scaledSectionSec * mult);
-        // エイド休憩の追加（restMinutes）
         const restMin = restMins && restMins[i] ? restMins[i] : 0;
         const restSec = restMin * 60;
         const totalSectionSec = adjustedSectionSec + restSec;
@@ -204,7 +199,6 @@ export default function Home() {
     return "+" + offset + "日 ";
   };
 
-  // restMinutes合計
   const totalRestMin = bundle?.adjustment?.restMinutes
     ? bundle.adjustment.restMinutes.reduce((a: number, b: number) => a + b, 0)
     : 0;
@@ -212,34 +206,51 @@ export default function Home() {
   return (
     <main style={{
       maxWidth: 480, margin: "0 auto", padding: "0 0 40px",
-      background: "#fafafa", minHeight: "100vh",
+      background: "#0a0a0a", minHeight: "100vh",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif",
+      color: "#fff",
     }}>
       {/* ===== ヘッダー ===== */}
-      <div style={{
-        background: "linear-gradient(135deg, #1a5c2e 0%, #2d8a4e 100%)",
-        padding: "28px 20px 22px", color: "#fff",
-      }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: "0.02em" }}>
-          彩の国トレイルランニング 2026
+      <div style={{ padding: "48px 20px 20px" }}>
+        <div style={{
+          display: "inline-block",
+          background: "rgba(34,197,94,0.15)",
+          border: "1px solid rgba(34,197,94,0.3)",
+          borderRadius: 20,
+          padding: "4px 12px",
+          fontSize: 11,
+          color: "#22c55e",
+          marginBottom: 10,
+          letterSpacing: "0.08em",
+        }}>
+          2026 RACE PLANNER
+        </div>
+        <h1 style={{
+          fontSize: 26, fontWeight: 800, color: "#fff",
+          margin: 0, letterSpacing: "-0.02em",
+        }}>
+          彩の国 TTホイホイ
         </h1>
-        <p style={{ fontSize: 13, margin: "4px 0 0", opacity: 0.85 }}>
+        <p style={{ fontSize: 13, color: "#b0b8c1", marginTop: 4 }}>
           Race Timetable Maker
         </p>
       </div>
 
       {/* ===== 入力フォーム ===== */}
-      <div style={{ padding: "16px 16px 0" }}>
+      <div style={{ padding: "0 16px" }}>
         <div style={{
-          background: "#fff", borderRadius: 12, padding: "20px 16px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          background: "#141414",
+          border: "1px solid #222",
+          borderRadius: 16,
+          padding: 18,
+          marginBottom: 12,
         }}>
           {/* 種目 */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#b0b8c1", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10 }}>
               種目
             </label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", background: "#1a1a1a", borderRadius: 10, padding: 3 }}>
               {[
                 { value: "100mile", label: "100mile" },
                 { value: "100k", label: "100km" },
@@ -248,34 +259,34 @@ export default function Home() {
                   key={opt.value}
                   onClick={() => handleRaceChange(opt.value)}
                   style={{
-                    flex: 1, padding: "10px 0", border: "2px solid",
-                    borderColor: race === opt.value ? "#1a5c2e" : "#e0e0e0",
-                    borderRadius: 8, background: race === opt.value ? "#f0f8f3" : "#fff",
-                    cursor: "pointer", transition: "all 0.15s",
+                    flex: 1, textAlign: "center", padding: "10px 0",
+                    borderRadius: 8, border: "none",
+                    fontSize: 14, fontWeight: 700, cursor: "pointer",
+                    transition: "all 0.2s",
+                    background: race === opt.value ? "#22c55e" : "transparent",
+                    color: race === opt.value ? "#000" : "#b0b8c1",
                   }}
                 >
-                  <div style={{ fontSize: 15, fontWeight: 700, color: race === opt.value ? "#1a5c2e" : "#333" }}>
-                    {opt.label}
-                  </div>
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
 
           {/* 目標タイム */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#b0b8c1", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10 }}>
               目標タイム
             </label>
             <select
               value={targetInput}
               onChange={(e) => setTargetInput(e.target.value)}
               style={{
-                width: "100%", padding: "12px 14px", fontSize: 18, fontWeight: 600,
-                border: "2px solid #e0e0e0", borderRadius: 8, boxSizing: "border-box",
-                textAlign: "center", background: "#fff", color: "#333",
-                appearance: "none", WebkitAppearance: "none",
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
+                width: "100%", padding: "14px 16px", fontSize: 20, fontWeight: 700,
+                textAlign: "center", border: "none",
+                background: "#1a1a1a", borderRadius: 10, color: "#fff",
+                appearance: "none" as const, WebkitAppearance: "none" as const,
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
                 backgroundRepeat: "no-repeat",
                 backgroundPosition: "right 14px center",
               }}
@@ -286,10 +297,10 @@ export default function Home() {
             </select>
           </div>
 
-          {/* 戦略調整（任意） */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>
-              戦略調整 <span style={{ fontWeight: 400, color: "#aaa" }}>（任意）</span>
+          {/* 戦略調整 */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#b0b8c1", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10 }}>
+              戦略調整 <span style={{ fontWeight: 400, color: "#6b7280", textTransform: "none" as const }}>（任意）</span>
             </label>
             <textarea
               rows={2}
@@ -297,14 +308,13 @@ export default function Home() {
               value={strategyInput}
               onChange={(e) => setStrategyInput(e.target.value)}
               style={{
-                width: "100%", padding: "10px 12px", fontSize: 14,
-                border: "2px solid #e0e0e0", borderRadius: 8, boxSizing: "border-box",
-                resize: "vertical", fontFamily: "inherit", outline: "none",
+                width: "100%", padding: "12px 14px", fontSize: 13,
+                border: "none", background: "#1a1a1a", borderRadius: 10,
+                color: "#e5e7eb", fontFamily: "inherit",
+                resize: "vertical" as const, lineHeight: 1.5, outline: "none",
               }}
-              onFocus={(e) => (e.target.style.borderColor = "#1a5c2e")}
-              onBlur={(e) => (e.target.style.borderColor = "#e0e0e0")}
             />
-            <span style={{ fontSize: 11, color: "#aaa", marginTop: 4, display: "block" }}>
+            <span style={{ fontSize: 11, color: "#6b7280", marginTop: 6, display: "block" }}>
               AIが戦略に合わせて区間タイムを調整します
             </span>
           </div>
@@ -314,17 +324,19 @@ export default function Home() {
             onClick={handleSubmit}
             disabled={loading}
             style={{
-              width: "100%", padding: "14px 0", fontSize: 16, fontWeight: 700,
-              color: "#fff", background: loading ? "#999" : "#1a5c2e",
-              border: "none", borderRadius: 10, cursor: loading ? "default" : "pointer",
-              transition: "background 0.2s",
+              width: "100%", padding: "16px", fontSize: 16, fontWeight: 700,
+              background: loading ? "#374151" : "#22c55e",
+              color: "#000", border: "none", borderRadius: 12,
+              cursor: loading ? "default" : "pointer",
+              letterSpacing: "0.02em",
+              transition: "all 0.2s",
             }}
           >
             {loading ? "生成中..." : "タイムテーブル生成"}
           </button>
 
           {error && (
-            <p style={{ color: "#d32f2f", fontSize: 13, marginTop: 10, textAlign: "center" }}>
+            <p style={{ color: "#ef4444", fontSize: 13, marginTop: 12, textAlign: "center" }}>
               {error}
             </p>
           )}
@@ -333,22 +345,19 @@ export default function Home() {
 
       {/* ===== 参考選手情報 ===== */}
       {bundle && bundle.base && (
-        <div style={{ padding: "12px 16px 0" }}>
+        <div style={{ padding: "0 16px" }}>
           <div style={{
-            background: "#fff", borderRadius: 12, padding: "14px 16px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            background: "#141414", border: "1px solid #222",
+            borderRadius: 14, padding: "14px 16px", marginBottom: 10,
           }}>
-            <div style={{ fontSize: 11, color: "#999", fontWeight: 600, marginBottom: 4, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>
               Base Runner（2025）
             </div>
-            <div style={{ fontSize: 14, color: "#333" }}>
-              <span style={{ fontWeight: 700 }}>{bundle.base.rank}位</span>{" "}
+            <div style={{ fontSize: 14, color: "#e5e7eb", marginTop: 4 }}>
+              <strong style={{ color: "#fff" }}>{bundle.base.rank}位</strong>{" "}
               {bundle.base.name}
-              <span style={{ color: "#999", margin: "0 6px" }}>|</span>
+              <span style={{ color: "#6b7280", margin: "0 6px" }}>|</span>
               {bundle.base.finishTime}
-            </div>
-            <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
-              目標 {bundle.target} に合わせてスケーリング
             </div>
           </div>
         </div>
@@ -356,21 +365,21 @@ export default function Home() {
 
       {/* ===== AI戦略カード ===== */}
       {bundle && bundle.adjustment && (
-        <div style={{ padding: "12px 16px 0" }}>
+        <div style={{ padding: "0 16px" }}>
           <div style={{
-            background: "#fffbeb", borderRadius: 12, padding: "14px 16px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            borderLeft: "4px solid #f59e0b",
+            background: "linear-gradient(135deg, #1a1406, #1c1a0a)",
+            border: "1px solid #332d10",
+            borderRadius: 14, padding: "14px 16px", marginBottom: 10,
           }}>
-            <div style={{ fontSize: 11, color: "#b45309", fontWeight: 700, marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.05em" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: "#fbbf24", textTransform: "uppercase" as const, letterSpacing: "0.1em" }}>
               AI STRATEGY
               {totalRestMin > 0 && (
-                <span style={{ fontWeight: 400, marginLeft: 8 }}>
+                <span style={{ fontWeight: 400, marginLeft: 8, fontSize: 10, color: "#fbbf24" }}>
                   （休憩追加: 合計{totalRestMin}分）
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 13, color: "#92400e", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: "#fde68a", marginTop: 6, lineHeight: 1.6 }}>
               {bundle.adjustment.notes}
             </div>
           </div>
@@ -379,33 +388,33 @@ export default function Home() {
 
       {/* ===== サマリー ===== */}
       {bundle && bundle.summary && table.length > 0 && (
-        <div style={{ padding: "12px 16px 0" }}>
-          <div style={{
-            display: "flex", gap: 8,
-          }}>
+        <div style={{ padding: "0 16px", marginBottom: 4 }}>
+          <div style={{ display: "flex", gap: 8 }}>
             {[
               { label: "総距離", value: bundle.summary.totalDistanceKm + "km" },
               { label: "累積標高", value: bundle.summary.totalElevationGainM + "m" },
               { label: "目標", value: bundle.target },
             ].map((item, i) => (
               <div key={i} style={{
-                flex: 1, background: "#fff", borderRadius: 10, padding: "10px 8px",
-                textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                flex: 1, background: "#141414", border: "1px solid #222",
+                borderRadius: 12, padding: "12px 8px", textAlign: "center",
               }}>
-                <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>
+                <div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600 }}>
                   {item.label}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#333" }}>{item.value}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#22c55e", marginTop: 2 }}>
+                  {item.value}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ===== タイムテーブル（カードリスト） ===== */}
+      {/* ===== タイムテーブル ===== */}
       {table.length > 0 && (
-        <div style={{ padding: "16px 16px 0" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#555", marginBottom: 10 }}>
+        <div style={{ padding: "14px 16px 0" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#b0b8c1", marginBottom: 10 }}>
             タイムテーブル
           </div>
 
@@ -413,26 +422,33 @@ export default function Home() {
             <div
               key={i}
               style={{
-                background: "#fff", borderRadius: 10, padding: "12px 14px",
-                marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                borderLeft: "4px solid " + (row.dayOffset > 0 ? "#e67e22" : "#1a5c2e"),
+                background: "#141414",
+                border: "1px solid #222",
+                borderRadius: 12,
+                padding: "14px 16px",
+                marginBottom: 8,
+                borderLeft: "3px solid " + (row.dayOffset > 0 ? "#f59e0b" : "#22c55e"),
               }}
             >
-              {/* 上段: 区間名 & 通過時刻 */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#333", flex: 1, minWidth: 0 }}>
+              {/* 上段 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e5e7eb", flex: 1, minWidth: 0 }}>
                   <span style={{
-                    display: "inline-block", background: "#f0f0f0", borderRadius: 4,
-                    padding: "1px 6px", fontSize: 11, fontWeight: 600, color: "#888",
-                    marginRight: 6,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 22, height: 22, background: "#1f2937", borderRadius: 6,
+                    fontSize: 11, fontWeight: 700, color: "#b0b8c1", marginRight: 6,
                   }}>
                     {i + 1}
                   </span>
                   {row.name}
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#1a5c2e", marginLeft: 8, whiteSpace: "nowrap" }}>
+                <div style={{
+                  fontSize: 24, fontWeight: 800,
+                  color: row.dayOffset > 0 ? "#f59e0b" : "#22c55e",
+                  marginLeft: 8, whiteSpace: "nowrap" as const,
+                }}>
                   {row.dayOffset > 0 && (
-                    <span style={{ fontSize: 11, color: "#e67e22", fontWeight: 600, marginRight: 2 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, marginRight: 2 }}>
                       {dayLabel(row.dayOffset)}
                     </span>
                   )}
@@ -440,8 +456,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 下段: 詳細データ */}
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {/* 下段 */}
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
                 {[
                   { label: "距離", value: row.distanceKm + "km" },
                   { label: "累積", value: row.cumulativeDistanceKm + "km" },
@@ -451,17 +467,18 @@ export default function Home() {
                   { label: "ペース", value: row.pace + "min/km" },
                 ].map((d, j) => (
                   <div key={j} style={{
-                    fontSize: 11, color: "#777", background: "#f8f8f8",
-                    borderRadius: 4, padding: "2px 7px",
+                    fontSize: 10, padding: "3px 8px",
+                    background: "#1a1a1a", borderRadius: 6, color: "#b0b8c1",
                   }}>
-                    <span style={{ color: "#aaa" }}>{d.label}</span>{" "}
-                    <span style={{ fontWeight: 600, color: "#555" }}>{d.value}</span>
+                    {d.label}{" "}
+                    <span style={{ fontWeight: 700, color: "#e5e7eb" }}>{d.value}</span>
                   </div>
                 ))}
                 {row.restMin > 0 && (
                   <div style={{
-                    fontSize: 11, color: "#b45309", background: "#fffbeb",
-                    borderRadius: 4, padding: "2px 7px", fontWeight: 600,
+                    fontSize: 10, padding: "3px 8px",
+                    background: "#332d10", borderRadius: 6,
+                    color: "#fbbf24", fontWeight: 700,
                   }}>
                     休憩 +{row.restMin}分
                   </div>
