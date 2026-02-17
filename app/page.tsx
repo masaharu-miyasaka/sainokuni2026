@@ -308,7 +308,7 @@ export default function Home() {
               value={strategyInput}
               onChange={(e) => setStrategyInput(e.target.value)}
               style={{
-                width: "100%", padding: "12px 14px", fontSize: 13,
+                width: "100%", padding: "12px 14px", fontSize: 16,
                 border: "none", background: "#1a1a1a", borderRadius: 10,
                 color: "#e5e7eb", fontFamily: "inherit",
                 resize: "vertical" as const, lineHeight: 1.5, outline: "none",
