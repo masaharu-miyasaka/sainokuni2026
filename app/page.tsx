@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 // ============================================================
 // ユーティリティ関数
@@ -107,6 +107,8 @@ export default function Home() {
   const [race, setRace] = useState("100k");
   const [targetInput, setTargetInput] = useState("15:00:00");
   const timeOptions = generateTimeOptions(race);
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleRaceChange = (newRace: string) => {
     setRace(newRace);
@@ -142,6 +144,27 @@ export default function Home() {
       setError("通信エラー: " + e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveImage = async () => {
+    if (!captureRef.current) return;
+    setSaving(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(captureRef.current, {
+        backgroundColor: "#0a0a0a",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = "timetable_" + race + "_" + bundle?.target?.replace(/:/g, "") + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e: any) {
+      alert("画像の保存に失敗しました: " + e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -204,14 +227,14 @@ export default function Home() {
     : 0;
 
   return (
-    <main style={{
+    <main ref={captureRef} style={{
       maxWidth: 480, margin: "0 auto", padding: "0 0 40px",
       background: "#0a0a0a", minHeight: "100vh",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif",
       color: "#fff",
     }}>
       {/* ===== ヘッダー ===== */}
-      <div style={{ padding: "48px 20px 20px" }}>
+      <div style={{ padding: "48px 20px 20px", position: "relative" }}>
         <div style={{
           display: "inline-block",
           background: "rgba(34,197,94,0.15)",
@@ -225,6 +248,38 @@ export default function Home() {
         }}>
           2026 RACE PLANNER
         </div>
+
+        {/* 画像保存ボタン */}
+        {table.length > 0 && (
+          <button
+            onClick={handleSaveImage}
+            disabled={saving}
+            style={{
+              position: "absolute",
+              top: 48,
+              right: 20,
+              background: "rgba(34,197,94,0.15)",
+              border: "1px solid rgba(34,197,94,0.3)",
+              borderRadius: 10,
+              padding: "8px 12px",
+              color: "#22c55e",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: saving ? "default" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {saving ? "保存中..." : "画像保存"}
+          </button>
+        )}
+
         <h1 style={{
           fontSize: 26, fontWeight: 800, color: "#fff",
           margin: 0, letterSpacing: "-0.02em",
@@ -286,7 +341,7 @@ export default function Home() {
                 textAlign: "center", border: "none",
                 background: "#1a1a1a", borderRadius: 10, color: "#fff",
                 appearance: "none" as const, WebkitAppearance: "none" as const,
-                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b0b8c1' d='M6 8L1 3h10z'/%3E%3C/svg%3E\")",
                 backgroundRepeat: "no-repeat",
                 backgroundPosition: "right 14px center",
               }}
@@ -343,9 +398,21 @@ export default function Home() {
         </div>
       </div>
 
+
+
+
+      {/* ===== キャプチャ用ヘッダー（画像保存時のみ表示される情報） ===== */}
+      {bundle && table.length > 0 && (
+        <div style={{ padding: "8px 16px 0" }}>
+          <div style={{ fontSize: 11, color: "#b0b8c1", marginBottom: 2, fontWeight: 600 }}>
+            彩の国 TTホイホイ ｜ {race === "100mile" ? "100mile" : "100km"} ｜ 目標 {bundle.target}
+          </div>
+        </div>
+      )}
+
       {/* ===== 参考選手情報 ===== */}
       {bundle && bundle.base && (
-        <div style={{ padding: "0 16px" }}>
+        <div style={{ padding: "4px 16px 0" }}>
           <div style={{
             background: "#141414", border: "1px solid #222",
             borderRadius: 14, padding: "14px 16px", marginBottom: 10,
@@ -488,6 +555,8 @@ export default function Home() {
           ))}
         </div>
       )}
+
+
     </main>
   );
 }
