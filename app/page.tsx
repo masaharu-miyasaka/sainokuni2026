@@ -157,10 +157,30 @@ export default function Home() {
         scale: 2,
         useCORS: true,
       });
-      const link = document.createElement("a");
-      link.download = "timetable_" + race + "_" + bundle?.target?.replace(/:/g, "") + ".png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      // iOS判定: Safari/Chrome/その他すべてのiOSブラウザはWebKitベースのため同じ制限あり
+      // iPadOS 13+は "Macintosh" を返すため touchpoints でも判定
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        // iOS: data URI downloadが使えないため新しいタブで画像を表示（Safari/Chrome共通）
+        canvas.toBlob((blob) => {
+          if (!blob) { alert("画像の生成に失敗しました"); return; }
+          const url = URL.createObjectURL(blob);
+          const w = window.open(url, "_blank");
+          if (!w) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.click();
+          }
+          setTimeout(() => { alert("画像が表示されたら長押しで保存してください"); }, 500);
+        }, "image/png");
+      } else {
+        const link = document.createElement("a");
+        link.download = "timetable_" + race + "_" + bundle?.target?.replace(/:/g, "") + ".png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
     } catch (e: any) {
       alert("画像の保存に失敗しました: " + e.message);
     } finally {
