@@ -152,17 +152,35 @@ export default function Home() {
     setSaving(true);
     try {
       const html2canvas = (await import("html2canvas")).default;
+
+      // iOS対策: SVG要素がcanvasを汚染するため、キャプチャ前に一時的に除去
+      // 1) select要素のSVG data URI背景を除去
+      const selects = captureRef.current.querySelectorAll("select");
+      const origBgs: string[] = [];
+      selects.forEach((sel, idx) => {
+        origBgs[idx] = (sel as HTMLElement).style.backgroundImage;
+        (sel as HTMLElement).style.backgroundImage = "none";
+      });
+      // 2) インラインSVGを一時非表示
+      const svgs = captureRef.current.querySelectorAll("svg");
+      svgs.forEach((svg) => { (svg as HTMLElement).style.display = "none"; });
+
       const canvas = await html2canvas(captureRef.current, {
         backgroundColor: "#0a0a0a",
         scale: 2,
         useCORS: true,
+        foreignObjectRendering: false,
       });
-      // iOS判定: Safari/Chrome/その他すべてのiOSブラウザはWebKitベースのため同じ制限あり
-      // iPadOS 13+は "Macintosh" を返すため touchpoints でも判定
+
+      // 元に戻す
+      selects.forEach((sel, idx) => {
+        (sel as HTMLElement).style.backgroundImage = origBgs[idx];
+      });
+      svgs.forEach((svg) => { (svg as HTMLElement).style.display = ""; });
+
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
         || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
       if (isIOS) {
-        // iOS: data URI downloadが使えないため新しいタブで画像を表示（Safari/Chrome共通）
         canvas.toBlob((blob) => {
           if (!blob) { alert("画像の生成に失敗しました"); return; }
           const url = URL.createObjectURL(blob);
@@ -372,10 +390,10 @@ export default function Home() {
             </select>
           </div>
 
-          {/* 戦略調整 */}
+          {/* カスタムオーダー */}
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#b0b8c1", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10 }}>
-              戦略調整 <span style={{ fontWeight: 400, color: "#6b7280", textTransform: "none" as const }}>（任意）</span>
+              カスタムオーダー <span style={{ fontWeight: 400, color: "#6b7280", textTransform: "none" as const }}>（任意）</span>
             </label>
             <textarea
               rows={2}
@@ -390,7 +408,7 @@ export default function Home() {
               }}
             />
             <span style={{ fontSize: 11, color: "#6b7280", marginTop: 6, display: "block" }}>
-              AIが戦略に合わせて区間タイムを調整します
+              AIがオーダーに合わせて区間タイムを調整します
             </span>
           </div>
 
