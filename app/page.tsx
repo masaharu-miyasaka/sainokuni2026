@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 // ============================================================
 // ユーティリティ関数
@@ -107,7 +107,6 @@ export default function Home() {
   const [race, setRace] = useState("100k");
   const [targetInput, setTargetInput] = useState("15:00:00");
   const timeOptions = generateTimeOptions(race);
-  const captureRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
 
   const handleRaceChange = (newRace: string) => {
@@ -147,60 +146,262 @@ export default function Home() {
     }
   };
 
+  // ============================================================
+  // 画像保存: 純粋Canvas 2D描画（html2canvas不使用・iOS完全対応）
+  // ============================================================
   const handleSaveImage = async () => {
-    if (!captureRef.current) return;
+    if (!bundle || table.length === 0) return;
     setSaving(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-
-      // iOS対策: SVG要素がcanvasを汚染するため、キャプチャ前に一時的に除去
-      // 1) select要素のSVG data URI背景を除去
-      const selects = captureRef.current.querySelectorAll("select");
-      const origBgs: string[] = [];
-      selects.forEach((sel, idx) => {
-        origBgs[idx] = (sel as HTMLElement).style.backgroundImage;
-        (sel as HTMLElement).style.backgroundImage = "none";
+      const W = 960;
+      const PAD = 32;
+      const CONTENT_W = W - PAD * 2;
+      const dpr = 2;
+      const tmpC = document.createElement("canvas");
+      tmpC.width = 1; tmpC.height = 1;
+      const tmpCtx = tmpC.getContext("2d")!;
+      const font = (weight: number, size: number) => `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      const measureText = (text: string, size: number, weight = 400) => {
+        tmpCtx.font = font(weight, size);
+        return tmpCtx.measureText(text).width;
+      };
+      const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number, size: number, weight = 400): string[] => {
+        ctx.font = font(weight, size);
+        const lines: string[] = [];
+        let line = "";
+        for (const ch of text) {
+          if (ch === "\n") { lines.push(line); line = ""; continue; }
+          const test = line + ch;
+          if (ctx.measureText(test).width > maxW && line.length > 0) { lines.push(line); line = ch; }
+          else { line = test; }
+        }
+        if (line) lines.push(line);
+        return lines;
+      };
+      let totalH = 0;
+      totalH += 80;
+      totalH += 14;
+      totalH += 60;
+      if (bundle.adjustment) {
+        const notesLines = wrapText(tmpCtx, bundle.adjustment.notes || "", CONTENT_W - 32, 22);
+        totalH += 60 + notesLines.length * 28;
+      }
+      totalH += 70;
+      totalH += 20;
+      for (const row of table) {
+        const tags = [
+          "\u8ddd\u96e2 " + row.distanceKm + "km",
+          "\u7d2f\u7a4d " + row.cumulativeDistanceKm + "km",
+          "\u6a19\u9ad8+ " + row.elevationGainM + "m",
+          "\u533a\u9593 " + row.sectionTime,
+          "\u7d2f\u7a4d " + row.cumulative,
+          "\u30da\u30fc\u30b9 " + row.pace + "min/km",
+        ];
+        if (row.restMin > 0) tags.push("\u4f11\u61a9 +" + row.restMin + "\u5206");
+        let tagRowW = 0; let tagRows = 1;
+        for (const t of tags) {
+          const tw = measureText(t, 18, 400) + 20;
+          if (tagRowW + tw + 6 > CONTENT_W - 16) { tagRows++; tagRowW = tw + 6; }
+          else { tagRowW += tw + 6; }
+        }
+        totalH += 50 + tagRows * 30 + 16;
+      }
+      totalH += 40;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * dpr;
+      canvas.height = totalH * dpr;
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = "#0a0a0a";
+      ctx.fillRect(0, 0, W, totalH);
+      let y = PAD;
+      const roundRect = (x: number, ry: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, ry);
+        ctx.lineTo(x + w - r, ry);
+        ctx.quadraticCurveTo(x + w, ry, x + w, ry + r);
+        ctx.lineTo(x + w, ry + h - r);
+        ctx.quadraticCurveTo(x + w, ry + h, x + w - r, ry + h);
+        ctx.lineTo(x + r, ry + h);
+        ctx.quadraticCurveTo(x, ry + h, x, ry + h - r);
+        ctx.lineTo(x, ry + r);
+        ctx.quadraticCurveTo(x, ry, x + r, ry);
+        ctx.closePath();
+      };
+      roundRect(PAD, y, 210, 28, 14);
+      ctx.fillStyle = "rgba(34,197,94,0.15)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(34,197,94,0.3)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = "#22c55e";
+      ctx.font = font(700, 18);
+      ctx.fillText("2026 RACE PLANNER", PAD + 14, y + 20);
+      y += 40;
+      ctx.fillStyle = "#fff";
+      ctx.font = font(800, 42);
+      ctx.fillText("\u5f69\u306e\u56fd TT\u30db\u30a4\u30db\u30a4", PAD, y + 36);
+      y += 50;
+      ctx.fillStyle = "#b0b8c1";
+      ctx.font = font(600, 18);
+      const raceLabel = (race === "100mile" ? "100mile" : "100km") + " \uff5c \u76ee\u6a19 " + bundle.target;
+      ctx.fillText(raceLabel, PAD, y + 14);
+      y += 28;
+      roundRect(PAD, y, CONTENT_W, 52, 14);
+      ctx.fillStyle = "#141414";
+      ctx.fill();
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = "#6b7280";
+      ctx.font = font(700, 16);
+      ctx.fillText("BASE RUNNER\uff082025\uff09", PAD + 16, y + 22);
+      ctx.fillStyle = "#fff";
+      ctx.font = font(700, 22);
+      ctx.fillText(bundle.base.rank + "\u4f4d", PAD + 16, y + 44);
+      ctx.fillStyle = "#e5e7eb";
+      ctx.font = font(400, 22);
+      const baseNameX = PAD + 16 + measureText(bundle.base.rank + "\u4f4d", 22, 700) + 10;
+      ctx.fillText(bundle.base.name + " | " + bundle.base.finishTime, baseNameX, y + 44);
+      y += 62;
+      if (bundle.adjustment) {
+        const notesLines = wrapText(ctx, bundle.adjustment.notes || "", CONTENT_W - 32, 22);
+        const cardH = 48 + notesLines.length * 28;
+        roundRect(PAD, y, CONTENT_W, cardH, 14);
+        ctx.fillStyle = "#1a1406";
+        ctx.fill();
+        ctx.strokeStyle = "#332d10";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = font(800, 16);
+        let stratLabel = "AI STRATEGY";
+        if (totalRestMin > 0) stratLabel += "\uff08\u4f11\u61a9\u8ffd\u52a0: \u5408\u8a08" + totalRestMin + "\u5206\uff09";
+        ctx.fillText(stratLabel, PAD + 16, y + 24);
+        ctx.fillStyle = "#fde68a";
+        ctx.font = font(400, 22);
+        notesLines.forEach((line, li) => {
+          ctx.fillText(line, PAD + 16, y + 48 + li * 28);
+        });
+        y += cardH + 10;
+      }
+      const summaryItems = [
+        { label: "\u7dcf\u8ddd\u96e2", value: bundle.summary.totalDistanceKm + "km" },
+        { label: "\u7d2f\u7a4d\u6a19\u9ad8", value: bundle.summary.totalElevationGainM + "m" },
+        { label: "\u76ee\u6a19", value: bundle.target },
+      ];
+      const cardW = (CONTENT_W - 16) / 3;
+      summaryItems.forEach((item, i) => {
+        const cx = PAD + i * (cardW + 8);
+        roundRect(cx, y, cardW, 58, 12);
+        ctx.fillStyle = "#141414";
+        ctx.fill();
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = "#6b7280";
+        ctx.font = font(600, 16);
+        ctx.textAlign = "center";
+        ctx.fillText(item.label, cx + cardW / 2, y + 22);
+        ctx.fillStyle = "#22c55e";
+        ctx.font = font(800, 24);
+        ctx.fillText(item.value, cx + cardW / 2, y + 48);
+        ctx.textAlign = "left";
       });
-      // 2) インラインSVGを一時非表示
-      const svgs = captureRef.current.querySelectorAll("svg");
-      svgs.forEach((svg) => { (svg as HTMLElement).style.display = "none"; });
-
-      const canvas = await html2canvas(captureRef.current, {
-        backgroundColor: "#0a0a0a",
-        scale: 2,
-        useCORS: true,
-        foreignObjectRendering: false,
+      y += 74;
+      ctx.fillStyle = "#b0b8c1";
+      ctx.font = font(700, 22);
+      ctx.fillText("\u30bf\u30a4\u30e0\u30c6\u30fc\u30d6\u30eb", PAD, y + 18);
+      y += 30;
+      table.forEach((row, i) => {
+        const accentColor = row.dayOffset > 0 ? "#f59e0b" : "#22c55e";
+        const tags: { text: string; isBold: boolean; bg: string; color: string }[] = [
+          { text: "\u8ddd\u96e2 " + row.distanceKm + "km", isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+          { text: "\u7d2f\u7a4d " + row.cumulativeDistanceKm + "km", isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+          { text: "\u6a19\u9ad8+ " + row.elevationGainM + "m", isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+          { text: "\u533a\u9593 " + row.sectionTime, isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+          { text: "\u7d2f\u7a4d " + row.cumulative, isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+          { text: "\u30da\u30fc\u30b9 " + row.pace + "min/km", isBold: false, bg: "#1a1a1a", color: "#e5e7eb" },
+        ];
+        if (row.restMin > 0) {
+          tags.push({ text: "\u4f11\u61a9 +" + row.restMin + "\u5206", isBold: true, bg: "#332d10", color: "#fbbf24" });
+        }
+        let tagRowW = 0; let tagRows = 1;
+        for (const t of tags) {
+          const tw = measureText(t.text, 18, 400) + 20;
+          if (tagRowW + tw + 6 > CONTENT_W - 16) { tagRows++; tagRowW = tw + 6; }
+          else { tagRowW += tw + 6; }
+        }
+        const rowH = 50 + tagRows * 30 + 8;
+        roundRect(PAD, y, CONTENT_W, rowH, 12);
+        ctx.fillStyle = "#141414";
+        ctx.fill();
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = accentColor;
+        roundRect(PAD, y, 4, rowH, 2);
+        ctx.fill();
+        const numX = PAD + 16;
+        roundRect(numX, y + 12, 30, 28, 6);
+        ctx.fillStyle = "#1f2937";
+        ctx.fill();
+        ctx.fillStyle = "#b0b8c1";
+        ctx.font = font(700, 18);
+        ctx.textAlign = "center";
+        ctx.fillText(String(i + 1), numX + 15, y + 32);
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#e5e7eb";
+        ctx.font = font(700, 22);
+        ctx.fillText(row.name, numX + 38, y + 34);
+        ctx.textAlign = "right";
+        ctx.fillStyle = accentColor;
+        ctx.font = font(800, 36);
+        ctx.fillText(row.realTime, PAD + CONTENT_W - 16, y + 38);
+        if (row.dayOffset > 0) {
+          const rtW = measureText(row.realTime, 36, 800);
+          ctx.font = font(600, 16);
+          ctx.fillText(row.dayOffset === 1 ? "\u7fcc" : "+" + row.dayOffset + "\u65e5 ", PAD + CONTENT_W - 16 - rtW - 4, y + 28);
+        }
+        ctx.textAlign = "left";
+        let tx = PAD + 16;
+        let ty = y + 52;
+        tags.forEach((tag) => {
+          ctx.font = font(tag.isBold ? 700 : 400, 18);
+          const tw = ctx.measureText(tag.text).width + 20;
+          if (tx + tw > PAD + CONTENT_W - 8) { tx = PAD + 16; ty += 30; }
+          roundRect(tx, ty, tw, 24, 6);
+          ctx.fillStyle = tag.bg;
+          ctx.fill();
+          ctx.fillStyle = tag.color;
+          ctx.fillText(tag.text, tx + 10, ty + 18);
+          tx += tw + 6;
+        });
+        y += rowH + 8;
       });
-
-      // 元に戻す
-      selects.forEach((sel, idx) => {
-        (sel as HTMLElement).style.backgroundImage = origBgs[idx];
-      });
-      svgs.forEach((svg) => { (svg as HTMLElement).style.display = ""; });
-
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
         || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
       if (isIOS) {
-        canvas.toBlob((blob) => {
-          if (!blob) { alert("画像の生成に失敗しました"); return; }
-          const url = URL.createObjectURL(blob);
-          const w = window.open(url, "_blank");
-          if (!w) {
-            const a = document.createElement("a");
-            a.href = url;
-            a.target = "_blank";
-            a.click();
-          }
-          setTimeout(() => { alert("画像が表示されたら長押しで保存してください"); }, 500);
-        }, "image/png");
+        const dataUrl = canvas.toDataURL("image/png");
+        const newTab = window.open("", "_blank");
+        if (newTab) {
+          newTab.document.write(
+            '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>\u30bf\u30a4\u30e0\u30c6\u30fc\u30d6\u30eb</title></head>' +
+            '<body style="margin:0;background:#000;display:flex;justify-content:center">' +
+            '<img src="' + dataUrl + '" style="width:100%;max-width:480px" />' +
+            '</body></html>'
+          );
+          newTab.document.close();
+        }
+        setTimeout(() => { alert("\u753b\u50cf\u3092\u9577\u62bc\u3057\u3057\u3066\u300c\u5199\u771f\u306b\u4fdd\u5b58\u300d\u3057\u3066\u304f\u3060\u3055\u3044"); }, 600);
       } else {
         const link = document.createElement("a");
-        link.download = "timetable_" + race + "_" + bundle?.target?.replace(/:/g, "") + ".png";
+        link.download = "timetable_" + race + "_" + (bundle?.target?.replace(/:/g, "") || "") + ".png";
         link.href = canvas.toDataURL("image/png");
         link.click();
       }
     } catch (e: any) {
-      alert("画像の保存に失敗しました: " + e.message);
+      alert("\u753b\u50cf\u306e\u4fdd\u5b58\u306b\u5931\u6557\u3057\u307e\u3057\u305f: " + e.message);
     } finally {
       setSaving(false);
     }
@@ -265,7 +466,7 @@ export default function Home() {
     : 0;
 
   return (
-    <main ref={captureRef} style={{
+    <main style={{
       maxWidth: 480, margin: "0 auto", padding: "0 0 40px",
       background: "#0a0a0a", minHeight: "100vh",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif",
