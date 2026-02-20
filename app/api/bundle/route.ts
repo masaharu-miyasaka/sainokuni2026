@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const GAS_URL =
-  "https://script.google.com/macros/s/AKfycbzvhN9RY8aTZQDBQJ0JpfiKEMDf4sxWv1uDDel63JnoPRQ6CegL0-5CPLuldeSAyqAG/exec";
+  "https://script.google.com/macros/s/AKfycbxmvho0M9C8RUdiP8Y3v4sokifm_iq0g_tqk5UlkS-O4JYYyXl0JsUFJWMvPSskO-zr/exec";
 
 // ============================================================
 // Claude API 戦略チューニング
