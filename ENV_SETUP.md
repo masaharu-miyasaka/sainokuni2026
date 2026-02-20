@@ -25,12 +25,14 @@
 | 項目 | 内容 |
 |------|------|
 | 用途 | レース区間データ・基準ランナー実績の取得 |
-| URL | `https://script.google.com/macros/s/AKfycbz.../exec` |
+| URL | `https://script.google.com/macros/s/AKfycbxmvho0M.../exec` |
 | 設定箇所 | `app/api/bundle/route.ts` の `GAS_URL` 定数（ハードコード） |
-| データソース | Google スプレッドシート |
+| データソース | Google スプレッドシート（個人アカウント管理） |
 | 呼び出し形式 | `GET ?action=bundle&race={race}&target={target}` |
 | レスポンス | JSON（レース区間、基準ランナースプリット、サマリー） |
 | 認証 | 不要（公開デプロイ） |
+| GASプロジェクト | [script.google.com](https://script.google.com) の「彩の国TTホイホイ」 |
+| スタート時刻 | 100mile: 2026-05-16 07:00 / 100km: 2026-05-16 09:00 |
 | 注意 | GASのURLはデプロイごとに変わるため、GAS側を再デプロイした場合は `route.ts` のURLも更新が必要 |
 
 ### Claude API
