@@ -14,6 +14,7 @@
 | 設定先（本番） | Vercel ダッシュボード → Settings → Environment Variables |
 | 取得方法 | [Anthropic Console](https://console.anthropic.com/) でAPIキーを発行 |
 | 備考 | 未設定の場合、カスタムオーダー（AI戦略調整）が無効になるが、基本のタイムテーブル生成は動作する |
+| アカウント | 個人アカウント（プライベート用）を使用。会社アカウントとは分離済み |
 
 ---
 
