@@ -382,18 +382,45 @@ export default function Home() {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
         || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
       if (isIOS) {
-        const dataUrl = canvas.toDataURL("image/png");
-        const newTab = window.open("", "_blank");
-        if (newTab) {
-          newTab.document.write(
-            '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>\u30bf\u30a4\u30e0\u30c6\u30fc\u30d6\u30eb</title></head>' +
-            '<body style="margin:0;background:#000;display:flex;justify-content:center">' +
-            '<img src="' + dataUrl + '" style="width:100%;max-width:480px" />' +
-            '</body></html>'
-          );
-          newTab.document.close();
-        }
-        setTimeout(() => { alert("\u753b\u50cf\u3092\u9577\u62bc\u3057\u3057\u3066\u300c\u5199\u771f\u306b\u4fdd\u5b58\u300d\u3057\u3066\u304f\u3060\u3055\u3044"); }, 600);
+        // iOS: Blob URLで<img>を表示 → 長押し保存可能
+        canvas.toBlob((blob) => {
+          if (!blob) { alert("\u753b\u50cf\u306e\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f"); setSaving(false); return; }
+          const blobUrl = URL.createObjectURL(blob);
+          const newTab = window.open("about:blank", "_blank");
+          if (newTab) {
+            newTab.document.open();
+            newTab.document.write(
+              '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+              '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+              '<title>\u30bf\u30a4\u30e0\u30c6\u30fc\u30d6\u30eb</title>' +
+              '<style>*{margin:0;padding:0}body{background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 0}' +
+              'img{width:100%;max-width:480px;display:block}' +
+              'p{color:#b0b8c1;font-size:14px;text-align:center;margin-top:16px;font-family:-apple-system,sans-serif}</style>' +
+              '</head><body>' +
+              '<img src="' + blobUrl + '" />' +
+              '<p>\u753b\u50cf\u3092\u9577\u62bc\u3057\u3057\u3066\u300c\u5199\u771f\u306b\u8ffd\u52a0\u300d\u3067\u4fdd\u5b58</p>' +
+              '</body></html>'
+            );
+            newTab.document.close();
+          } else {
+            const overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#000;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center";
+            const img = document.createElement("img");
+            img.src = blobUrl;
+            img.style.cssText = "width:100%;max-width:480px";
+            const hint = document.createElement("p");
+            hint.textContent = "\u753b\u50cf\u3092\u9577\u62bc\u3057\u3057\u3066\u300c\u5199\u771f\u306b\u8ffd\u52a0\u300d\u3067\u4fdd\u5b58";
+            hint.style.cssText = "color:#b0b8c1;font-size:14px;margin-top:16px;font-family:-apple-system,sans-serif";
+            const closeBtn = document.createElement("button");
+            closeBtn.textContent = "\u9589\u3058\u308b";
+            closeBtn.style.cssText = "margin-top:20px;padding:12px 32px;background:#22c55e;color:#000;border:none;border-radius:8px;font-size:16px;font-weight:700";
+            closeBtn.onclick = () => { document.body.removeChild(overlay); URL.revokeObjectURL(blobUrl); };
+            overlay.appendChild(img);
+            overlay.appendChild(hint);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+          }
+        }, "image/png");
       } else {
         const link = document.createElement("a");
         link.download = "timetable_" + race + "_" + (bundle?.target?.replace(/:/g, "") || "") + ".png";
