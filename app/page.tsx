@@ -20,6 +20,12 @@ function secondsToHMS(sec: number): string {
   return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
+/** 区間名から到着地点名のみを抽出（例: "くぬぎむら→慈光寺" → "慈光寺"） */
+function destinationName(name: string): string {
+  const idx = name.indexOf("→");
+  return idx >= 0 ? name.substring(idx + 1).trim() : name;
+}
+
 function addSecondsToStart(startISO: string, sec: number): { time: string; dayOffset: number } {
   const date = new Date(startISO.replace(" ", "T"));
   const startDay = date.getDate();
@@ -405,7 +411,7 @@ export default function Home() {
         // 区間名
         ctx.fillStyle = "#e5e7eb";
         ctx.font = font(700, S.sectionName);
-        ctx.fillText(row.name, numX + S.numBadgeW + 12, y + 44);
+        ctx.fillText(destinationName(row.name), numX + S.numBadgeW + 12, y + 44);
 
         // 実時刻（右寄せ）
         ctx.textAlign = "right";
@@ -835,7 +841,7 @@ export default function Home() {
                   }}>
                     {i + 1}
                   </span>
-                  {row.name}
+                  {destinationName(row.name)}
                 </div>
                 <div style={{
                   fontSize: 24, fontWeight: 800,
